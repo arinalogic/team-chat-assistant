@@ -111,6 +111,11 @@ def main() -> None:
 
                 if chat_id in sessions:
                     sessions[chat_id].append(f"[{author_name}, {timestamp}] {text}")
+                    logger.info(
+                        "Сообщение добавлено в сессию чата %s: всего сообщений=%d",
+                        chat_id,
+                        len(sessions[chat_id]),
+                    )
 
                 if _should_answer(message, bot_username, bot_user_id):
                     question = _remove_bot_mention(text, bot_username).strip() or text

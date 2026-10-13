@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
@@ -14,6 +15,8 @@ from haystack_integrations.components.retrievers.pinecone import PineconeEmbeddi
 from haystack_integrations.document_stores.pinecone import PineconeDocumentStore
 
 from config import Config
+
+logger = logging.getLogger("team_chat_assistant")
 
 
 class PipelineManager:
@@ -133,6 +136,12 @@ class PipelineManager:
 
         document = Document(id=document_id, content=content, meta=metadata)
         self.indexing_pipeline.run({"embedder": {"documents": [document]}})
+        logger.info(
+            "Сообщение сохранено в Pinecone: id=%s, автор=%s, длина текста=%d",
+            document_id[:8],
+            author_name,
+            len(content),
+        )
 
     def search_context(self, query: str, chat_id: int) -> list[Document]:
         chat_filter = {"field": "meta.chat_id", "operator": "==", "value": chat_id}
@@ -142,10 +151,28 @@ class PipelineManager:
                 "retriever": {"filters": chat_filter, "top_k": 5},
             }
         )
-        return result["retriever"]["documents"]
+        documents = result["retriever"]["documents"]
+        logger.info("Найдено документов в Pinecone: %d", len(documents))
+        for document in documents:
+            metadata = document.meta or {}
+            author = str(metadata.get("author_name", "Неизвестный автор"))
+            score = document.score if document.score is not None else "нет"
+            text_preview = " ".join((document.content or "").split())[:50]
+            logger.info(
+                "Найденный документ: автор=%s, score=%s, текст=%s",
+                author,
+                score,
+                text_preview,
+            )
+        return documents
 
     def summarize_session(self, messages: list[str]) -> str:
         context = "\n".join(messages)
+        logger.info(
+            "Контекст итога сессии: сообщений=%d, длина контекста=%d символов",
+            len(messages),
+            len(context),
+        )
         return self._generate_text(mode="итог сессии", question="", context=context)
 
     def answer_question(self, question: str, found_docs: list[Document]) -> str:
@@ -160,6 +187,11 @@ class PipelineManager:
             context_lines.append(f"[{author}, {timestamp}] {document.content or ''}")
 
         context = "\n".join(context_lines) or "Подходящие сообщения не найдены."
+        logger.info(
+            "Контекст ответа: сообщений=%d, длина контекста=%d символов",
+            len(found_docs),
+            len(context),
+        )
         return self._generate_text(mode="ответ на вопрос", question=question, context=context)
 
     def _generate_text(self, mode: str, question: str, context: str) -> str:
