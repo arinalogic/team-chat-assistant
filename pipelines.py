@@ -68,7 +68,7 @@ class PipelineManager:
         )
         pipeline.add_component(
             "retriever",
-            PineconeEmbeddingRetriever(document_store=self.document_store, top_k=5),
+            PineconeEmbeddingRetriever(document_store=self.document_store, top_k=30),
         )
         pipeline.connect("text_embedder.embedding", "retriever.query_embedding")
         return pipeline
@@ -148,7 +148,7 @@ class PipelineManager:
         result = self.search_pipeline.run(
             {
                 "text_embedder": {"text": query},
-                "retriever": {"filters": chat_filter, "top_k": 5},
+                "retriever": {"filters": chat_filter, "top_k": 30},
             }
         )
         documents = result["retriever"]["documents"]
