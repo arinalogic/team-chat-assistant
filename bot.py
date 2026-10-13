@@ -95,6 +95,8 @@ def main() -> None:
             if author is None or author.is_bot:
                 return
 
+            should_answer = _should_answer(message, bot_username, bot_user_id)
+
             try:
                 timestamp = format_timestamp(message.date)
                 author_name = " ".join(
@@ -133,7 +135,7 @@ def main() -> None:
                         len(sessions[chat_id]),
                     )
 
-                if _should_answer(message, bot_username, bot_user_id):
+                if should_answer:
                     question = _remove_bot_mention(text, bot_username).strip() or text
                     logger.info("Поиск контекста в чате %s", chat_id)
                     documents = manager.search_context(question, chat_id)
@@ -153,7 +155,8 @@ def main() -> None:
                     send_text(chat_id, answer)
             except Exception:
                 logger.exception("Ошибка при обработке сообщения из чата %s", chat_id)
-                send_error(chat_id)
+                if should_answer:
+                    send_error(chat_id)
 
         logger.info("Запуск Telegram-бота")
         bot.infinity_polling()
