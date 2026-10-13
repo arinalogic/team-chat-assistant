@@ -175,21 +175,20 @@ class PipelineManager:
         )
         return self._generate_text(mode="итог сессии", question="", context=context)
 
-    def answer_question(self, question: str, found_docs: list[Document]) -> str:
+    def answer_question(self, question: str, context_messages: list[dict[str, str | int]]) -> str:
         context_lines = []
-        for document in found_docs:
-            metadata = document.meta or {}
-            author = str(metadata.get("author_name", "Неизвестный автор"))
-            username = metadata.get("username")
+        for message in context_messages:
+            author = str(message.get("author_name", "Неизвестный автор"))
+            username = message.get("username")
             if username:
                 author = f"{author} (@{username})"
-            timestamp = str(metadata.get("timestamp", "Время не указано"))
-            context_lines.append(f"[{author}, {timestamp}] {document.content or ''}")
+            timestamp = str(message.get("timestamp", "Время не указано"))
+            context_lines.append(f"[{author}, {timestamp}] {message.get('text', '')}")
 
         context = "\n".join(context_lines) or "Подходящие сообщения не найдены."
         logger.info(
             "Контекст ответа: сообщений=%d, длина контекста=%d символов",
-            len(found_docs),
+            len(context_messages),
             len(context),
         )
         return self._generate_text(mode="ответ на вопрос", question=question, context=context)
