@@ -198,11 +198,9 @@ class PipelineManager:
         result = self.summary_pipeline.run(
             {
                 "prompt_builder": {
-                    "template_variables": {
-                        "mode": mode,
-                        "question": question,
-                        "context": context,
-                    }
+                    "mode": mode,
+                    "question": question,
+                    "context": context,
                 }
             }
         )
