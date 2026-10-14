@@ -103,37 +103,41 @@ def main() -> None:
                     part for part in (author.first_name, author.last_name) if part
                 ) or str(author.id)
 
-                logger.info("Индексация сообщения из чата %s", chat_id)
-                manager.index_message(
-                    content=text,
-                    author_name=author_name,
-                    author_id=author.id,
-                    chat_id=chat_id,
-                    message_id=message.message_id,
-                    timestamp=timestamp,
-                    username=author.username,
-                )
-
-                chat_messages = recent_messages.setdefault(
-                    chat_id, collections.deque(maxlen=15)
-                )
-                recent_message: dict[str, str | int] = {
-                    "author_name": author_name,
-                    "timestamp": timestamp,
-                    "text": text,
-                    "message_id": message.message_id,
-                }
-                if author.username:
-                    recent_message["username"] = author.username
-                chat_messages.append(recent_message)
-
-                if chat_id in sessions:
-                    sessions[chat_id].append(f"[{author_name}, {timestamp}] {text}")
-                    logger.info(
-                        "Сообщение добавлено в сессию чата %s: всего сообщений=%d",
-                        chat_id,
-                        len(sessions[chat_id]),
+                addressed_in_group = should_answer and message.chat.type != "private"
+                if addressed_in_group:
+                    logger.info("Сообщение адресовано боту, в память не сохраняется")
+                else:
+                    logger.info("Индексация сообщения из чата %s", chat_id)
+                    manager.index_message(
+                        content=text,
+                        author_name=author_name,
+                        author_id=author.id,
+                        chat_id=chat_id,
+                        message_id=message.message_id,
+                        timestamp=timestamp,
+                        username=author.username,
                     )
+
+                    chat_messages = recent_messages.setdefault(
+                        chat_id, collections.deque(maxlen=15)
+                    )
+                    recent_message: dict[str, str | int] = {
+                        "author_name": author_name,
+                        "timestamp": timestamp,
+                        "text": text,
+                        "message_id": message.message_id,
+                    }
+                    if author.username:
+                        recent_message["username"] = author.username
+                    chat_messages.append(recent_message)
+
+                    if chat_id in sessions:
+                        sessions[chat_id].append(f"[{author_name}, {timestamp}] {text}")
+                        logger.info(
+                            "Сообщение добавлено в сессию чата %s: всего сообщений=%d",
+                            chat_id,
+                            len(sessions[chat_id]),
+                        )
 
                 if should_answer:
                     question = _remove_bot_mention(text, bot_username).strip() or text
@@ -141,7 +145,7 @@ def main() -> None:
                     documents = manager.search_context(question, chat_id)
                     context_messages, search_count, recent_count = _combine_answer_context(
                         documents,
-                        list(recent_messages[chat_id]),
+                        list(recent_messages.get(chat_id, ())),
                         message.message_id,
                     )
                     for context_message in context_messages:
