@@ -144,6 +144,15 @@ def main() -> None:
                         list(recent_messages[chat_id]),
                         message.message_id,
                     )
+                    for context_message in context_messages:
+                        text_preview = " ".join(str(context_message.get("text", "")).split())[:50]
+                        logger.info(
+                            "Контекст ответа [%s]: автор=%s, время=%s, текст=%s",
+                            context_message["source"],
+                            context_message.get("author_name", "Неизвестный автор"),
+                            context_message.get("timestamp", "Время не указано"),
+                            text_preview,
+                        )
                     logger.info(
                         "Контекст ответа: найдено поиском=%d, добавлено из последних=%d, всего=%d",
                         search_count,
@@ -210,6 +219,7 @@ def _combine_answer_context(
             "timestamp": str(metadata.get("timestamp", "")),
             "text": document.content or "",
             "message_id": numeric_message_id,
+            "source": "поиск",
         }
         username = metadata.get("username")
         if username:
@@ -222,7 +232,7 @@ def _combine_answer_context(
         message_id = int(message["message_id"])
         if message_id == current_message_id or message_id in messages_by_id:
             continue
-        messages_by_id[message_id] = message
+        messages_by_id[message_id] = {**message, "source": "последние"}
         recent_count += 1
 
     context_messages = sorted(

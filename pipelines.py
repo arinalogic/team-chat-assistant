@@ -158,7 +158,7 @@ class PipelineManager:
             author = str(metadata.get("author_name", "Неизвестный автор"))
             score = document.score if document.score is not None else "нет"
             text_preview = " ".join((document.content or "").split())[:50]
-            logger.info(
+            logger.debug(
                 "Найденный документ: автор=%s, score=%s, текст=%s",
                 author,
                 score,
